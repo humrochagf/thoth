@@ -1,5 +1,9 @@
-import typer
+from typing import Optional
 
+import typer
+from dynaconf.loaders import toml_loader
+
+from .config import settings
 from .core import Thoth
 
 app = typer.Typer()
@@ -10,10 +14,29 @@ thoth = Thoth()
 def log(message: str):
     log = thoth.log(message)
 
-    typer.echo(f"[{log.created_at:%Y-%m-%d %H:%M}] {log.message}")
+    typer.echo(
+        f"[{log.created_at:%Y-%m-%d %H:%M}]({log.channel}) {log.message}"
+    )
 
 
 @app.command()
 def ls():
     for log in thoth.query_logs():
-        typer.echo(f"[{log.created_at:%Y-%m-%d %H:%M}] {log.message}")
+        typer.echo(
+            f"[{log.created_at:%Y-%m-%d %H:%M}]({log.channel}) {log.message}"
+        )
+
+
+@app.command()
+def config(key: str, value: Optional[str] = None):
+    key = key.lower()
+
+    if not settings.exists(key):
+        typer.echo(f"The key {key} is invalid.")
+    elif value is None:
+        typer.echo(settings.get(key))
+    else:
+        if key == "default_channel" and value not in settings.channels:
+            typer.echo(f"Invalid channel. Pick one from {settings.channels}")
+        else:
+            toml_loader.write(settings.config_file, {key: value}, merge=True)
