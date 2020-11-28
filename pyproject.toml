@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "thoth"
+version = "0.1.0"
+description = "A CLI that turns your day to day into a log stream"
+authors = ["Humberto Rocha <humrochagf@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+thoth = "thoth.cli:app"
+th = "thoth.cli:app"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+typer = {extras = ["all"], version = "^0.3.2"}
+tinydb = "^4.3.0"
+pydantic = "^1.7.2"
+pendulum = "^2.1.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+ipython = "^7.19.0"
+ipdb = "^0.13.4"
+isort = "^5.6.4"
+flake8 = "^3.8.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
