@@ -5,13 +5,6 @@ import pendulum
 from pydantic import BaseModel
 
 
-class Channel(BaseModel):
-
-    key: str
-    name: str
-    color: str
-
-
 class Log(BaseModel):
 
     channel: str

@@ -4,7 +4,7 @@ from typing import Iterator
 from tinydb import TinyDB
 
 from . import settings
-from .data import Channel, Log
+from .data import Log
 
 
 class Thoth():
@@ -15,12 +15,10 @@ class Thoth():
 
         self.db = TinyDB(self.root_path / settings.DATABASE_NAME)
 
-        channel_key = "work"
-        channel_data = settings.CHANNELS[channel_key]
-        self.channel = Channel(key=channel_key, **channel_data)
+        self.channel = "work"
 
     def log(self, message: str) -> Log:
-        log = Log(channel=self.channel.key, message=message)
+        log = Log(channel=self.channel, message=message)
 
         self.db.insert(json.loads(log.json()))
 
