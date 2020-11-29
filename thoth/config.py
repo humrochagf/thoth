@@ -6,6 +6,10 @@ settings = Dynaconf(
     envvar_prefix="THOTH",
 )
 
+settings.editor = "vim"
+
+settings.front_matter_format = "yaml"
+
 settings.root_path = Path.home() / ".thoth"
 
 settings.log_path = settings.root_path / "logs"
