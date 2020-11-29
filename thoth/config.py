@@ -8,6 +8,8 @@ settings = Dynaconf(
 
 settings.root_path = Path.home() / ".thoth"
 
+settings.log_path = settings.root_path / "logs"
+
 settings.config_file = settings.root_path / "config.toml"
 
 settings.database_file = settings.root_path / "db.json"

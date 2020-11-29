@@ -12,3 +12,7 @@ class Log(BaseModel):
     message: str
     created_at: datetime = pendulum.now()
     stopped_at: Optional[datetime] = None
+
+    @property
+    def filename(self):
+        return f"{self.created_at:%Y%m%d%H%M%S}.md"
