@@ -48,11 +48,11 @@ def log(
 
 
 @app.command()
-def list():
+def list(channel: str = typer.Option("", "--channel", "-c")):
     """
     List logged activities.
     """
-    for log in thoth.query_logs():
+    for log in thoth.query_logs(channel):
         echo_log(log)
 
 

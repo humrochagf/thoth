@@ -6,7 +6,7 @@ from typing import Iterator
 import toml
 import typer
 import yaml
-from tinydb import TinyDB
+from tinydb import TinyDB, where
 
 from .config import settings
 from .data import Log
@@ -84,6 +84,11 @@ class Thoth:
 
             return False
 
-    def query_logs(self) -> Iterator[Log]:
-        for item in self.db.all():
+    def query_logs(self, channel: str = "") -> Iterator[Log]:
+        if channel:
+            query = self.db.search(where("channel") == channel)
+        else:
+            query = self.db.all()
+
+        for item in query:
             yield Log(**item)
