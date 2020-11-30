@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
+from uuid import UUID, uuid4
 
 import pendulum
 from pydantic import BaseModel
@@ -7,6 +8,7 @@ from pydantic import BaseModel
 
 class Log(BaseModel):
 
+    id: UUID = uuid4()
     channel: str
     tags: List[str] = []
     message: str

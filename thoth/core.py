@@ -33,10 +33,7 @@ class Thoth:
         self.db = TinyDB(settings.database_file)
 
     def log(self, log: Log) -> bool:
-        path = self.log_path / log.channel
-        path.mkdir(parents=True, exist_ok=True)
-
-        with open(path / log.filename, "x+") as fp:
+        with open(self.log_path / log.filename, "x+") as fp:
             if settings.front_matter_format == "toml":
                 fp.write(LOG_TOML.format(**log.dict()))
             else:
@@ -72,7 +69,7 @@ class Thoth:
 
         if log.channel not in settings.channels:
             typer.echo("Aborting log due to invalid channel.")
-            (path / log.filename).unlink()
+            (self.log_path / log.filename).unlink()
 
             return False
 
@@ -82,7 +79,7 @@ class Thoth:
             return True
         else:
             typer.echo("Aborting log due to empty log message.")
-            (path / log.filename).unlink()
+            (self.log_path / log.filename).unlink()
 
             return False
 

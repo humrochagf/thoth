@@ -13,11 +13,12 @@ thoth = Thoth()
 
 
 def echo_log(log: Log):
-    channel = typer.style(log.channel, fg=typer.colors.BLUE)
+    log_id = typer.style(log.id.hex[:7], fg=typer.colors.BLUE)
+    channel = typer.style(log.channel, fg=typer.colors.YELLOW)
     created_at = typer.style(
-        f"({log.created_at:%Y-%m-%d %H:%M})", fg=typer.colors.GREEN
+        f"({log.created_at:%Y %b %d %H:%M})", fg=typer.colors.GREEN
     )
-    typer.echo(f"* {channel} - {created_at} {log.message}")
+    typer.echo(f"* {log_id} - {channel} - {created_at} {log.message}")
 
 
 @app.command()
