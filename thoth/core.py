@@ -3,6 +3,7 @@ import re
 from subprocess import call
 from typing import Iterator
 
+import pendulum
 import toml
 import typer
 import yaml
@@ -63,6 +64,7 @@ class Thoth:
 
                 log.channel = meta["channel"]
                 log.tags = meta["tags"]
+                log.stopped_at = pendulum.now()
 
                 fp.seek(0)
                 fp.truncate()
