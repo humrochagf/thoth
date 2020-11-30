@@ -91,3 +91,12 @@ class Thoth:
 
         for item in query:
             yield Log(**item)
+
+    def get_log(self, id: str) -> Log:
+        results = self.db.search(where("id").test(
+            lambda value, search: value.startswith(search),
+            id
+        ))
+
+        if len(results) == 1:
+            return Log(**results[0])

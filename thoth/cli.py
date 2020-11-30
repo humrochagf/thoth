@@ -12,13 +12,20 @@ app = typer.Typer()
 thoth = Thoth()
 
 
-def echo_log(log: Log):
+def echo_log(log: Log, verbose: bool = False):
     log_id = typer.style(log.id.hex[:7], fg=typer.colors.BLUE)
     channel = typer.style(log.channel, fg=typer.colors.YELLOW)
     created_at = typer.style(
         f"({log.created_at:%Y %b %d %H:%M})", fg=typer.colors.GREEN
     )
-    typer.echo(f"* {log_id} - {channel} - {created_at} {log.message}")
+
+    if verbose:
+        with open(thoth.log_path / log.filename) as fp:
+            content = fp.read()
+
+            typer.echo(f"* {log_id} - {channel} - {created_at}\n{content}")
+    else:
+        typer.echo(f"* {log_id} - {channel} - {created_at} {log.message}")
 
 
 @app.command()
@@ -46,6 +53,15 @@ def log(
 
         if thoth.log(log):
             echo_log(log)
+
+
+@app.command()
+def show(id: str):
+    """
+    Show a specific log.
+    """
+    if log := thoth.get_log(id):
+        echo_log(log, True)
 
 
 @app.command()
