@@ -61,7 +61,7 @@ class Thoth:
 
                 log.channel = meta["channel"]
                 log.tags = meta["tags"]
-                log.end = pendulum.now()
+                log.end = log.end or pendulum.now()
 
                 fp.seek(0)
                 fp.truncate()
