@@ -17,4 +17,4 @@ class Log(BaseModel):
 
     @property
     def filename(self):
-        return f"{self.start:%Y%m%d%H%M%S}.md"
+        return f"{self.id.hex}.md"
