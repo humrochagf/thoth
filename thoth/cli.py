@@ -1,7 +1,9 @@
 from typing import Optional
 
+import pendulum
 import typer
 from dynaconf.loaders import toml_loader
+from pendulum.parsing import ParserError
 
 from . import __version__
 from .config import settings
@@ -15,17 +17,14 @@ thoth = Thoth()
 def echo_log(log: Log, verbose: bool = False):
     log_id = typer.style(log.id.hex[:7], fg=typer.colors.BLUE)
     channel = typer.style(log.channel, fg=typer.colors.YELLOW)
-    created_at = typer.style(
-        f"({log.created_at:%Y %b %d %H:%M})", fg=typer.colors.GREEN
-    )
+    start = typer.style(f"({log.start:%Y %b %d %H:%M})", fg=typer.colors.GREEN)
 
     if verbose:
         with open(thoth.log_path / log.filename) as fp:
             content = fp.read()
-
-            typer.echo(f"* {log_id} - {channel} - {created_at}\n{content}")
+            typer.echo(f"* {log_id} - {channel} - {start}\n{content}")
     else:
-        typer.echo(f"* {log_id} - {channel} - {created_at} {log.message}")
+        typer.echo(f"* {log_id} - {channel} - {start} {log.message}")
 
 
 @app.command()
@@ -40,6 +39,8 @@ def version():
 def log(
     message: str = typer.Option("", "--message", "-m"),
     channel: str = typer.Option("", "--channel", "-c"),
+    start: str = typer.Option(None, "--start", "-s"),
+    end: str = typer.Option(None, "--end", "-e"),
 ):
     """
     Log a new activity.
@@ -48,11 +49,30 @@ def log(
 
     if channel not in settings.channels:
         typer.echo(f"Invalid channel. Pick one from {settings.channels}")
-    else:
-        log = Log(channel=channel, message=message)
+        raise typer.Abort()
 
-        if thoth.log(log):
-            echo_log(log)
+    log = Log(channel=channel, message=message)
+
+    if start:
+        try:
+            log.start = pendulum.parse(start)
+        except ParserError:
+            typer.echo("Invalid start datetime format.")
+            raise typer.Abort()
+
+    if end:
+        try:
+            log.end = pendulum.parse(end)
+        except ParserError:
+            typer.echo("Invalid start datetime format.")
+            raise typer.Abort()
+
+        if log.start > log.end:
+            typer.echo("Log end must be greater than start.")
+            raise typer.Abort()
+
+    if thoth.log(log):
+        echo_log(log)
 
 
 @app.command()

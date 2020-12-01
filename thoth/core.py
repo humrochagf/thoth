@@ -61,7 +61,7 @@ class Thoth:
 
                 log.channel = meta["channel"]
                 log.tags = meta["tags"]
-                log.stopped_at = pendulum.now()
+                log.end = pendulum.now()
 
                 fp.seek(0)
                 fp.truncate()
@@ -93,10 +93,11 @@ class Thoth:
             yield Log(**item)
 
     def get_log(self, id: str) -> Log:
-        results = self.db.search(where("id").test(
-            lambda value, search: value.startswith(search),
-            id
-        ))
+        results = self.db.search(
+            where("id").test(
+                lambda value, search: value.startswith(search), id
+            )
+        )
 
         if len(results) == 1:
             return Log(**results[0])

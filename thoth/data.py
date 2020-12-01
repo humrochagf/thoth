@@ -12,9 +12,9 @@ class Log(BaseModel):
     channel: str
     tags: List[str] = []
     message: str
-    created_at: datetime = pendulum.now()
-    stopped_at: Optional[datetime] = None
+    start: datetime = pendulum.now()
+    end: Optional[datetime] = None
 
     @property
     def filename(self):
-        return f"{self.created_at:%Y%m%d%H%M%S}.md"
+        return f"{self.start:%Y%m%d%H%M%S}.md"
