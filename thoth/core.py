@@ -7,7 +7,7 @@ import pendulum
 import toml
 import typer
 import yaml
-from tinydb import TinyDB, where
+from tinydb import Query, TinyDB, where
 
 from .config import settings
 from .data import Log
@@ -141,9 +141,7 @@ class Thoth:
             fp.truncate()
             fp.write(content)
 
-            self.db.update(
-                json.loads(log.json()),
-                where("id").test(
-                    lambda value, search: value.startswith(search), str(log.id)
-                )
-            )
+            self.db.update(json.loads(log.json()), Query().id == str(log.id))
+
+    def delete_log(self, log: Log):
+        self.db.remove(Query().id == str(log.id))

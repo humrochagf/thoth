@@ -103,6 +103,15 @@ def edit(id: str):
 
 
 @app.command()
+def delete(id: str):
+    """
+    Delete a specific log.
+    """
+    if log := thoth.get_log(id):
+        thoth.delete_log(log)
+
+
+@app.command()
 def config(key: str, value: Optional[str] = None):
     """
     Manage thoth configuration options.
