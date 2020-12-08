@@ -94,6 +94,15 @@ def list(channel: str = typer.Option("", "--channel", "-c")):
 
 
 @app.command()
+def edit(id: str):
+    """
+    Edit a specific log.
+    """
+    if log := thoth.get_log(id):
+        thoth.edit_log(log)
+
+
+@app.command()
 def config(key: str, value: Optional[str] = None):
     """
     Manage thoth configuration options.

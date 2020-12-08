@@ -101,3 +101,49 @@ class Thoth:
 
         if len(results) == 1:
             return Log(**results[0])
+
+    def edit_log(self, log: Log):
+        with open(self.log_path / log.filename, "r+") as fp:
+            data = log.dict()
+            data["message"] = fp.read()
+
+            fp.seek(0)
+            fp.truncate()
+
+            if settings.front_matter_format == "toml":
+                fp.write(LOG_TOML.format(**data))
+            else:
+                fp.write(LOG_YAML.format(**data))
+
+            fp.flush()
+            call([settings.editor, fp.name])
+            fp.seek(0)
+
+            meta = {}
+            content = fp.read()
+
+            if match := LOG_YAML_RE.search(content):
+                meta = yaml.safe_load(match.groupdict()["meta"])
+                content = match.groupdict()["body"]
+            elif match := LOG_TOML_RE.search(content):
+                meta = toml.loads(match.groupdict()["meta"])
+                content = match.groupdict()["body"]
+
+            content = content.strip()
+
+            if content:
+                log.message = content.splitlines()[0].strip()
+
+            log.channel = meta["channel"]
+            log.tags = meta["tags"]
+
+            fp.seek(0)
+            fp.truncate()
+            fp.write(content)
+
+            self.db.update(
+                json.loads(log.json()),
+                where("id").test(
+                    lambda value, search: value.startswith(search), str(log.id)
+                )
+            )
