@@ -18,7 +18,7 @@ settings.config_file = settings.root_path / "config.toml"
 
 settings.database_file = settings.root_path / "db.json"
 
-settings.channels = ["work", "life", "health", "hobby"]
+settings.channels = ["work", "life", "health", "hobby", "tip"]
 
 settings.default_channel = settings.channels[0]
 
