@@ -4,6 +4,8 @@ import pendulum
 import typer
 from dynaconf.loaders import toml_loader
 from pendulum.parsing import ParserError
+from rich.console import Console
+from rich.markdown import Markdown
 
 from . import __version__
 from .config import settings
@@ -12,19 +14,22 @@ from .data import Log
 
 app = typer.Typer()
 thoth = Thoth()
+console = Console(highlight=False)
 
 
 def echo_log(log: Log, verbose: bool = False):
-    log_id = typer.style(log.id.hex[:7], fg=typer.colors.BLUE)
-    channel = typer.style(log.channel, fg=typer.colors.YELLOW)
-    start = typer.style(f"({log.start:%Y %b %d %H:%M})", fg=typer.colors.GREEN)
+    log_id = f"[blue]{log.id.hex[:7]}[/blue]"
+    channel = f"[yellow]{log.channel}[/yellow]"
+    start = f"[green]({log.start:%Y %b %d %H:%M})[/green]"
 
     if verbose:
         with open(thoth.log_path / log.filename) as fp:
-            content = fp.read()
-            typer.echo(f"* {log_id} - {channel} - {start}\n{content}")
+            markdown = Markdown(f"# {fp.read()}", hyperlinks=False)
+
+            console.print(f"* {log_id} - {channel} - {start}")
+            console.print(markdown)
     else:
-        typer.echo(f"* {log_id} - {channel} - {start} {log.message}")
+        console.print(f"* {log_id} - {channel} - {start} {log.message}")
 
 
 @app.command()
@@ -32,7 +37,7 @@ def version():
     """
     Show thoth version.
     """
-    typer.echo(__version__)
+    console.print(__version__)
 
 
 @app.command()
@@ -48,7 +53,8 @@ def log(
     channel = channel or settings.default_channel
 
     if channel not in settings.channels:
-        typer.echo(f"Invalid channel. Pick one from {settings.channels}")
+        console.print(f"Invalid channel. Pick one from {settings.channels}")
+
         raise typer.Abort()
 
     log = Log(channel=channel, message=message)
@@ -57,18 +63,21 @@ def log(
         try:
             log.start = pendulum.parse(start)
         except ParserError:
-            typer.echo("Invalid start datetime format.")
+            console.print("Invalid start datetime format.")
+
             raise typer.Abort()
 
     if end:
         try:
             log.end = pendulum.parse(end)
         except ParserError:
-            typer.echo("Invalid start datetime format.")
+            console.print("Invalid start datetime format.")
+
             raise typer.Abort()
 
         if log.start > log.end:
-            typer.echo("Log end must be greater than start.")
+            console.print("Log end must be greater than start.")
+
             raise typer.Abort()
 
     if thoth.log(log):
@@ -119,11 +128,13 @@ def config(key: str, value: Optional[str] = None):
     key = key.lower()
 
     if not settings.exists(key):
-        typer.echo(f"The key {key} is invalid.")
+        console.print(f"The key {key} is invalid.")
     elif value is None:
-        typer.echo(settings.get(key))
+        console.print(settings.get(key))
     else:
         if key == "default_channel" and value not in settings.channels:
-            typer.echo(f"Invalid channel. Pick one from {settings.channels}")
+            console.print(
+                f"Invalid channel. Pick one from {settings.channels}"
+            )
         else:
             toml_loader.write(settings.config_file, {key: value}, merge=True)

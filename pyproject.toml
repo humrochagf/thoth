@@ -18,6 +18,7 @@ pendulum = "^2.1.2"
 dynaconf = "^3.1.2"
 PyYAML = "^5.3.1"
 toml = "^0.10.2"
+rich = "^9.4.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

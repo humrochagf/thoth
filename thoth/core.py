@@ -5,8 +5,8 @@ from typing import Iterator
 
 import pendulum
 import toml
-import typer
 import yaml
+from rich.console import Console
 from tinydb import Query, TinyDB, where
 
 from .config import settings
@@ -20,6 +20,8 @@ LOG_YAML_RE = re.compile(
 LOG_TOML_RE = re.compile(
     r"^\+\+\+\n(?P<meta>[\s\S]*)\+\+\+\n(?P<body>[\s\S]*)$", re.MULTILINE
 )
+
+console = Console()
 
 
 class Thoth:
@@ -68,7 +70,7 @@ class Thoth:
                 fp.write(content)
 
         if log.channel not in settings.channels:
-            typer.echo("Aborting log due to invalid channel.")
+            console.print("Aborting log due to invalid channel.")
             (self.log_path / log.filename).unlink()
 
             return False
@@ -78,7 +80,7 @@ class Thoth:
 
             return True
         else:
-            typer.echo("Aborting log due to empty log message.")
+            console.print("Aborting log due to empty log message.")
             (self.log_path / log.filename).unlink()
 
             return False
