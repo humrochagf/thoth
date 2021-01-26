@@ -12,11 +12,11 @@ settings.front_matter_format = "yaml"
 
 settings.root_path = Path.home() / ".thoth"
 
-settings.log_path = settings.root_path / "logs"
-
 settings.config_file = settings.root_path / "config.toml"
 
-settings.database_file = settings.root_path / "db.json"
+settings.database_file = settings.root_path / "thoth.db"
+
+settings.database_url = f"sqlite:///{settings.database_file}"
 
 settings.channels = ["work", "life", "health", "hobby", "tip"]
 

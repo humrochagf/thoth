@@ -1,35 +1,33 @@
 from typing import Optional
 
-import pendulum
+import arrow
 import typer
 from dynaconf.loaders import toml_loader
-from pendulum.parsing import ParserError
 from rich.console import Console
 from rich.markdown import Markdown
 
 from . import __version__
 from .config import settings
 from .core import Thoth
-from .data import Log
+from .data import PydanticLog
 
 app = typer.Typer()
 thoth = Thoth()
 console = Console(highlight=False)
 
 
-def echo_log(log: Log, verbose: bool = False):
+def echo_log(log: PydanticLog, verbose: bool = False):
     log_id = f"[blue]{log.id.hex[:7]}[/blue]"
     channel = f"[yellow]{log.channel}[/yellow]"
-    start = f"[green]({log.start:%Y %b %d %H:%M})[/green]"
+    start = f"[green]({log.start.humanize()})[/green]"
 
     if verbose:
-        with open(thoth.log_path / log.filename) as fp:
-            markdown = Markdown(f"# {fp.read()}", hyperlinks=False)
+        markdown = Markdown(f"# {log.title}\n\n{log.body}", hyperlinks=False)
 
-            console.print(f"* {log_id} - {channel} - {start}")
-            console.print(markdown)
+        console.print(f"* {log_id} - {channel} - {start}")
+        console.print(markdown)
     else:
-        console.print(f"* {log_id} - {channel} - {start} {log.message}")
+        console.print(f"* {log_id} - {channel} - {start} {log.title}")
 
 
 @app.command()
@@ -57,20 +55,29 @@ def log(
 
         raise typer.Abort()
 
-    log = Log(channel=channel, message=message)
+    message_lines = message.strip().splitlines()
+
+    if len(message_lines) > 1:
+        log = PydanticLog(
+            channel=channel,
+            title=message_lines[0],
+            body="\n".join(message_lines[1:]),
+        )
+    else:
+        log = PydanticLog(channel=channel, title=message)
 
     if start:
         try:
-            log.start = pendulum.parse(start)
-        except ParserError:
+            log.start = arrow.get(start)
+        except arrow.ParserError:
             console.print("Invalid start datetime format.")
 
             raise typer.Abort()
 
     if end:
         try:
-            log.end = pendulum.parse(end)
-        except ParserError:
+            log.end = arrow.get(end)
+        except arrow.ParserError:
             console.print("Invalid start datetime format.")
 
             raise typer.Abort()
@@ -80,8 +87,10 @@ def log(
 
             raise typer.Abort()
 
-    if thoth.log(log):
+    if log := thoth.log(log):
         echo_log(log)
+    else:
+        raise typer.Abort()
 
 
 @app.command()
@@ -108,7 +117,10 @@ def edit(id: str):
     Edit a specific log.
     """
     if log := thoth.get_log(id):
-        thoth.edit_log(log)
+        if log := thoth.log(log):
+            echo_log(log)
+        else:
+            raise typer.Abort()
 
 
 @app.command()
