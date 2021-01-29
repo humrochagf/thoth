@@ -1,12 +1,12 @@
 import re
 from subprocess import call
-from typing import Iterator
+from typing import Iterator, Optional
 
 import arrow
 import toml
 import yaml
 from rich.console import Console
-from sqlalchemy import String, cast
+from sqlalchemy import String, cast, or_
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 from .config import settings
@@ -100,11 +100,23 @@ class Thoth:
 
             return None
 
-    def query_logs(self, channel: str = "") -> Iterator[PydanticLog]:
-        if channel:
-            query = self.db.query(Log).filter(Log.channel == channel)
+    def query_logs(
+        self,
+        query_string: Optional[str] = None,
+        channel: Optional[str] = None,
+    ) -> Iterator[PydanticLog]:
+        query = self.db.query(Log)
+
+        if query_string is not None:
+            query = query.filter(or_(
+                Log.title.ilike(f"%{query_string}%"),
+                Log.body.ilike(f"%{query_string}%"),
+                Log.tags.ilike([f"%{query_string}%"]),
+            ))
+        elif channel is not None:
+            query = query.filter(Log.channel == channel)
         else:
-            query = self.db.query(Log).all()
+            query = query.all()
 
         for item in query:
             yield PydanticLog.from_orm(item)

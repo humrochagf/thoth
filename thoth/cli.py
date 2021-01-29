@@ -103,11 +103,20 @@ def show(id: str):
 
 
 @app.command()
-def list(channel: str = typer.Option("", "--channel", "-c")):
+def list(channel: Optional[str] = typer.Option(None, "--channel", "-c")):
     """
     List logged activities.
     """
-    for log in thoth.query_logs(channel):
+    for log in thoth.query_logs(channel=channel):
+        echo_log(log)
+
+
+@app.command()
+def search(query: str):
+    """
+    Search into the log content, tag or title given a query.
+    """
+    for log in thoth.query_logs(query_string=query):
         echo_log(log)
 
 
