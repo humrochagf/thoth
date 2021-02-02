@@ -1,5 +1,8 @@
 import re
+import secrets
+from pathlib import Path
 from subprocess import call
+from tempfile import TemporaryDirectory
 from typing import Iterator, Optional
 
 import arrow
@@ -43,39 +46,38 @@ class Thoth:
         self.root_path = settings.root_path
         self.root_path.mkdir(parents=True, exist_ok=True)
 
-        self.tmp_file = self.root_path / "tmp.md"
-
         self.db = build_db()
 
     def log(self, log: PydanticLog) -> PydanticLog:
-        with self.tmp_file.open("w+", encoding="utf8") as fp:
-            if settings.front_matter_format == "toml":
-                fp.write(LOG_TOML.format(log=log))
-            else:
-                fp.write(LOG_YAML.format(log=log))
+        with TemporaryDirectory() as tmp_dir:
+            tmp_file = Path(tmp_dir) / f"{secrets.token_hex(4)}.md"
 
-            fp.flush()
-            call([settings.editor, fp.name])
-            fp.seek(0)
+            with tmp_file.open("w+", encoding="utf8") as fp:
+                if settings.front_matter_format == "toml":
+                    fp.write(LOG_TOML.format(log=log))
+                else:
+                    fp.write(LOG_YAML.format(log=log))
 
-            meta = {}
-            content = fp.read()
+                fp.flush()
+                call([settings.editor, fp.name])
+                fp.seek(0)
 
-            if match := LOG_YAML_RE.search(content):
-                meta = yaml.safe_load(match.groupdict()["meta"])
-                body = match.groupdict()["body"]
+                meta = {}
+                content = fp.read()
 
-            elif match := LOG_TOML_RE.search(content):
-                meta = toml.loads(match.groupdict()["meta"])
-                body = match.groupdict()["body"]
+                if match := LOG_YAML_RE.search(content):
+                    meta = yaml.safe_load(match.groupdict()["meta"])
+                    body = match.groupdict()["body"]
 
-            log.channel = meta["channel"]
-            log.tags = meta["tags"]
-            log.title = meta["title"]
-            log.end = log.end or arrow.utcnow()
-            log.body = body.strip()
+                elif match := LOG_TOML_RE.search(content):
+                    meta = toml.loads(match.groupdict()["meta"])
+                    body = match.groupdict()["body"]
 
-        self.tmp_file.unlink()
+                log.channel = meta["channel"]
+                log.tags = meta["tags"]
+                log.title = meta["title"]
+                log.end = log.end or arrow.utcnow()
+                log.body = body.strip()
 
         if log.channel not in settings.channels:
             console.print("Aborting log due to invalid channel.")
