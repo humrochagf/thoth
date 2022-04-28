@@ -101,15 +101,16 @@ class Thoth:
             yield Log(**item)
 
     def get_log(self, id: str) -> Optional[Log]:
-        # TODO: fix typing
         results = self.db.search(
             where("id").test(
-                lambda value, search: value.startswith(search), id
+                lambda value: value.startswith(id)  # type: ignore
             )
         )
 
-        if len(results) == 1:
-            return Log(**results[0])
+        if len(results) != 1:
+            return None
+
+        return Log(**results[0])
 
     def delete_log(self, log: Log) -> None:
         self.db.remove(where("id") == str(log.id))

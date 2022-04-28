@@ -28,6 +28,21 @@ ipdb = "^0.13.9"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
 black = "^22.3.0"
+mypy = "^0.950"
+types-toml = "^0.10.6"
+types-PyYAML = "^6.0.7"
+
+[tool.mypy]
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+  "dynaconf.*",
+  "appdirs.*",
+]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

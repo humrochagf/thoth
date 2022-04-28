@@ -17,11 +17,13 @@ thoth = Thoth()
 console = Console(highlight=False)
 
 
-def echo_log(log: Log, verbose: bool = False):
+def echo_log(log: Log, verbose: bool = False) -> None:
     log_id = f"[blue]{log.id.hex[:7]}[/blue]"
     channel = f"[yellow]{log.channel}[/yellow]"
     status = "[green]done[/green]" if log.end else "[yellow]pending[/yellow]"
     start = f"[green]({arrow.get(log.start).humanize()})[/green]"
+
+    message: str | Markdown
 
     if verbose:
         message = Markdown(f"\n# {log.title}\n\n{log.body}", hyperlinks=False)
@@ -32,7 +34,7 @@ def echo_log(log: Log, verbose: bool = False):
 
 
 @app.command()
-def version():
+def version() -> None:
     """
     Show thoth version.
     """
@@ -45,7 +47,7 @@ def log(
     channel: str = typer.Option("", "--channel", "-c"),
     start: str = typer.Option(None, "--start", "-s"),
     end: str = typer.Option(None, "--end", "-e"),
-):
+) -> None:
     """
     Log a new activity.
     """
@@ -89,7 +91,7 @@ def log(
 
 
 @app.command()
-def show(id: str):
+def show(id: str) -> None:
     """
     Show a specific log.
     """
@@ -98,7 +100,9 @@ def show(id: str):
 
 
 @app.command()
-def list(channel: Optional[str] = typer.Option(None, "--channel", "-c")):
+def list(
+    channel: Optional[str] = typer.Option(None, "--channel", "-c"),
+) -> None:
     """
     List logged activities.
     """
@@ -107,7 +111,7 @@ def list(channel: Optional[str] = typer.Option(None, "--channel", "-c")):
 
 
 @app.command()
-def search(query: str):
+def search(query: str) -> None:
     """
     Search into the log content, tag or title given a query.
     """
@@ -116,7 +120,7 @@ def search(query: str):
 
 
 @app.command()
-def edit(id: str):
+def edit(id: str) -> None:
     """
     Edit a specific log.
     """
@@ -128,7 +132,7 @@ def edit(id: str):
 
 
 @app.command()
-def delete(id: str):
+def delete(id: str) -> None:
     """
     Delete a specific log.
     """
@@ -137,7 +141,7 @@ def delete(id: str):
 
 
 @app.command()
-def config(key: str, value: Optional[str] = None):
+def config(key: str, value: Optional[str] = None) -> None:
     """
     Manage thoth configuration options.
     """
