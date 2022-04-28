@@ -6,28 +6,29 @@ from dynaconf.loaders import toml_loader
 from rich.console import Console
 from rich.markdown import Markdown
 
-from . import __version__
-from .config import settings
-from .core import Thoth
-from .data import PydanticLog
+from thoth import __version__
+from thoth.config import settings
+from thoth.core import Thoth
+from thoth.data import Log
+from thoth.exceptions import ThothException
 
 app = typer.Typer()
 thoth = Thoth()
 console = Console(highlight=False)
 
 
-def echo_log(log: PydanticLog, verbose: bool = False):
+def echo_log(log: Log, verbose: bool = False):
     log_id = f"[blue]{log.id.hex[:7]}[/blue]"
     channel = f"[yellow]{log.channel}[/yellow]"
-    start = f"[green]({log.start.humanize()})[/green]"
+    status = "[green]done[/green]" if log.end else "[yellow]pending[/yellow]"
+    start = f"[green]({arrow.get(log.start).humanize()})[/green]"
 
     if verbose:
-        markdown = Markdown(f"# {log.title}\n\n{log.body}", hyperlinks=False)
-
-        console.print(f"* {log_id} - {channel} - {start}")
-        console.print(markdown)
+        message = Markdown(f"\n# {log.title}\n\n{log.body}", hyperlinks=False)
     else:
-        console.print(f"* {log_id} - {channel} - {start} {log.title}")
+        message = log.title
+
+    console.print(f"* {log_id} - {channel} - {status} - {start}", message)
 
 
 @app.command()
@@ -55,20 +56,15 @@ def log(
 
         raise typer.Abort()
 
-    message_lines = message.strip().splitlines()
+    message_lines = message.strip().splitlines() or [""]
+    title = message_lines[0]
+    body = "\n".join(message_lines[1:])
 
-    if len(message_lines) > 1:
-        log = PydanticLog(
-            channel=channel,
-            title=message_lines[0],
-            body="\n".join(message_lines[1:]),
-        )
-    else:
-        log = PydanticLog(channel=channel, title=message)
+    log = Log(channel=channel, title=title, body=body)
 
     if start:
         try:
-            log.start = arrow.get(start)
+            log.start = arrow.get(start).datetime
         except arrow.ParserError:
             console.print("Invalid start datetime format.")
 
@@ -76,21 +72,20 @@ def log(
 
     if end:
         try:
-            log.end = arrow.get(end)
+            log.end = arrow.get(end).datetime
         except arrow.ParserError:
-            console.print("Invalid start datetime format.")
+            console.print("Invalid end datetime format.")
 
             raise typer.Abort()
 
-        if log.start > log.end:
-            console.print("Log end must be greater than start.")
+    try:
+        log = thoth.log(log)
+    except ThothException as e:
+        console.print(e)
 
-            raise typer.Abort()
-
-    if log := thoth.log(log):
-        echo_log(log)
-    else:
         raise typer.Abort()
+
+    echo_log(log)
 
 
 @app.command()

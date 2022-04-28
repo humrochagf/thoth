@@ -1,25 +1,23 @@
+import json
 import re
-import secrets
-from pathlib import Path
 from subprocess import call
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile
 from typing import Iterator, Optional
 
-import arrow
 import toml
 import yaml
-from rich.console import Console
-from sqlalchemy import String, cast, or_
-from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+from tinydb import TinyDB, where
 
-from .config import settings
-from .data import Log, PydanticLog, build_db
+from thoth.config import DATABASE_FILE, settings
+from thoth.data import Log
+from thoth.exceptions import ThothException
 
 LOG_YAML = (
     "---\n"
     "channel: {log.channel}\n"
     "tags: {log.tags}\n"
     "title: {log.title}\n"
+    "time_spent: {log.time_spent}\n"
     "---\n"
     "{log.body}"
 )
@@ -28,6 +26,7 @@ LOG_TOML = (
     'channel = "{log.channel}"\n'
     "tags = {log.tags}\n"
     'title = "{log.title}"\n'
+    'time_spent = "{log.time_spent}"\n'
     "+++\n"
     "{log.body}"
 )
@@ -38,103 +37,79 @@ LOG_TOML_RE = re.compile(
     r"^\+\+\+\n(?P<meta>[\s\S]*)\+\+\+\n(?P<body>[\s\S]*)$", re.MULTILINE
 )
 
-console = Console()
-
 
 class Thoth:
+
+    db: TinyDB
+
     def __init__(self):
-        self.root_path = settings.root_path
-        self.root_path.mkdir(parents=True, exist_ok=True)
+        DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-        self.db = build_db()
+        self.db = TinyDB(DATABASE_FILE)
 
-    def log(self, log: PydanticLog) -> PydanticLog:
-        with TemporaryDirectory() as tmp_dir:
-            tmp_file = Path(tmp_dir) / f"{secrets.token_hex(4)}.md"
+    def log(self, log: Log) -> Log:
+        with NamedTemporaryFile("w+", encoding="utf8", suffix=".md") as fp:
+            if settings.front_matter_format == "toml":
+                fp.write(LOG_TOML.format(log=log))
+            else:
+                fp.write(LOG_YAML.format(log=log))
 
-            with tmp_file.open("w+", encoding="utf8") as fp:
-                if settings.front_matter_format == "toml":
-                    fp.write(LOG_TOML.format(log=log))
-                else:
-                    fp.write(LOG_YAML.format(log=log))
+            fp.flush()
+            call([settings.editor, fp.name])
+            fp.seek(0)
 
-                fp.flush()
-                call([settings.editor, fp.name])
-                fp.seek(0)
+            content = fp.read()
 
+            if match := LOG_YAML_RE.search(content):
+                meta = yaml.safe_load(match.groupdict()["meta"])
+                body = match.groupdict()["body"]
+            elif match := LOG_TOML_RE.search(content):
+                meta = toml.loads(match.groupdict()["meta"])
+                body = match.groupdict()["body"]
+            else:
                 meta = {}
-                content = fp.read()
+                body = ""
 
-                if match := LOG_YAML_RE.search(content):
-                    meta = yaml.safe_load(match.groupdict()["meta"])
-                    body = match.groupdict()["body"]
-
-                elif match := LOG_TOML_RE.search(content):
-                    meta = toml.loads(match.groupdict()["meta"])
-                    body = match.groupdict()["body"]
-
-                log.channel = meta["channel"]
-                log.tags = meta["tags"]
-                log.title = meta["title"]
-                log.end = log.end or arrow.utcnow()
-                log.body = body.strip()
+            log.channel = meta["channel"]
+            log.tags = meta["tags"]
+            log.title = meta["title"]
+            log.time_spent = meta["time_spent"]
+            log.body = body.strip()
 
         if log.channel not in settings.channels:
-            console.print("Aborting log due to invalid channel.")
+            raise ThothException("Invalid log channel.")
 
-            return None
+        if not log.title:
+            raise ThothException("A log title is required.")
 
-        if log.title:
-            if log.id:
-                self.db.query(Log).filter(Log.id == log.id).update(log.dict())
-                self.db.commit()
+        self.db.upsert(json.loads(log.json()), where("id") == str(log.id))
 
-                return log
-            else:
-                log_entry = Log(**log.dict())
-
-                self.db.add(log_entry)
-                self.db.commit()
-
-                return PydanticLog.from_orm(log_entry)
-        else:
-            console.print("Aborting log due to empty log message.")
-
-            return None
+        return log
 
     def query_logs(
         self,
         query_string: Optional[str] = None,
         channel: Optional[str] = None,
-    ) -> Iterator[PydanticLog]:
-        query = self.db.query(Log)
-
-        if query_string is not None:
-            query = query.filter(or_(
-                Log.title.ilike(f"%{query_string}%"),
-                Log.body.ilike(f"%{query_string}%"),
-                Log.tags.ilike([f"%{query_string}%"]),
-            ))
-        elif channel is not None:
-            query = query.filter(Log.channel == channel)
+    ) -> Iterator[Log]:
+        # TODO: text search
+        if channel:
+            query = self.db.search(where("channel") == channel)
         else:
-            query = query.all()
+            query = self.db.all()
 
         for item in query:
-            yield PydanticLog.from_orm(item)
+            yield Log(**item)
 
-    def get_log(self, id: str) -> PydanticLog:
-        try:
-            return PydanticLog.from_orm(
-                self.db.query(Log)
-                .filter(cast(Log.id, String).startswith(id))
-                .one()
+    def get_log(self, id: str) -> Optional[Log]:
+        # TODO: fix typing
+        results = self.db.search(
+            where("id").test(
+                lambda value, search: value.startswith(search), id
             )
-        except MultipleResultsFound:
-            return None
-        except NoResultFound:
-            return None
+        )
 
-    def delete_log(self, log: PydanticLog):
-        self.db.query(Log).filter(Log.id == log.id).delete()
-        self.db.commit()
+        if len(results) == 1:
+            return Log(**results[0])
+
+    def delete_log(self, log: Log) -> None:
+        self.db.remove(where("id") == str(log.id))
