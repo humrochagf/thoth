@@ -32,6 +32,9 @@ mypy = "^0.950"
 types-toml = "^0.10.6"
 types-PyYAML = "^6.0.7"
 
+[tool.isort]
+profile = "black"
+
 [tool.mypy]
 disallow_incomplete_defs = true
 check_untyped_defs = true

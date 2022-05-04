@@ -34,20 +34,24 @@ class Thoth:
 
     def log(self, log: Log) -> Log:
         with NamedTemporaryFile("w+", encoding="utf8", suffix=".md") as fp:
-            log_dict = json.loads(log.json(
-                include={"title", "channel", "tags", "custom_data"}
-            ))
+            log_dict = json.loads(
+                log.json(include={"title", "channel", "tags", "custom_data"})
+            )
 
             if settings.front_matter_format == "toml":
-                fp.write(LOG_TOML.format(
-                    meta=toml.dumps(log_dict),
-                    body=log.body,
-                ))
+                fp.write(
+                    LOG_TOML.format(
+                        meta=toml.dumps(log_dict),
+                        body=log.body,
+                    )
+                )
             else:
-                fp.write(LOG_YAML.format(
-                    meta=yaml.safe_dump(log_dict),
-                    body=log.body,
-                ))
+                fp.write(
+                    LOG_YAML.format(
+                        meta=yaml.safe_dump(log_dict),
+                        body=log.body,
+                    )
+                )
 
             fp.flush()
             call([settings.editor, fp.name])
@@ -97,9 +101,7 @@ class Thoth:
 
     def get_log(self, id: str) -> Optional[Log]:
         results = self.db.search(
-            where("id").test(
-                lambda value: value.startswith(id)  # type: ignore
-            )
+            where("id").test(lambda value: value.startswith(id))  # type: ignore
         )
 
         if len(results) != 1:

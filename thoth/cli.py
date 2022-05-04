@@ -153,9 +153,7 @@ def config(key: str, value: Optional[str] = None) -> None:
         console.print(settings.get(key))
     else:
         if key == "default_channel" and value not in settings.channels:
-            console.print(
-                f"Invalid channel. Pick one from {settings.channels}"
-            )
+            console.print(f"Invalid channel. Pick one from {settings.channels}")
         else:
             CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
