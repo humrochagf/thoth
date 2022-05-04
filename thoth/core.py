@@ -30,7 +30,9 @@ class Thoth:
     def __init__(self):
         DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-        self.db = TinyDB(DATABASE_FILE)
+        self.db = TinyDB(
+            DATABASE_FILE, sort_keys=True, indent=2, separators=(",", ": ")
+        )
 
     def log(self, log: Log) -> Log:
         with NamedTemporaryFile("w+", encoding="utf8", suffix=".md") as fp:
