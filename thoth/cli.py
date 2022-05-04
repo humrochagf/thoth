@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from thoth import __version__
-from thoth.config import settings
+from thoth.config import CONFIG_FILE, settings
 from thoth.core import Thoth
 from thoth.data import Log
 from thoth.exceptions import ThothException
@@ -157,4 +157,4 @@ def config(key: str, value: Optional[str] = None) -> None:
                 f"Invalid channel. Pick one from {settings.channels}"
             )
         else:
-            toml_loader.write(settings.config_file, {key: value}, merge=True)
+            toml_loader.write(CONFIG_FILE, {key: value}, merge=True)
