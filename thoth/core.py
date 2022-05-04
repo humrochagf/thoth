@@ -12,27 +12,12 @@ from thoth.config import DATABASE_FILE, settings
 from thoth.data import Log
 from thoth.exceptions import ThothException
 
-LOG_YAML = (
-    "---\n"
-    "channel: {log.channel}\n"
-    "tags: {log.tags}\n"
-    "title: {log.title}\n"
-    "time_spent: {log.time_spent}\n"
-    "---\n"
-    "{log.body}"
-)
-LOG_TOML = (
-    "+++\n"
-    'channel = "{log.channel}"\n'
-    "tags = {log.tags}\n"
-    'title = "{log.title}"\n'
-    'time_spent = "{log.time_spent}"\n'
-    "+++\n"
-    "{log.body}"
-)
+LOG_YAML = "---\n{meta}---\n{body}"
 LOG_YAML_RE = re.compile(
     r"^---\n(?P<meta>[\s\S]*)---\n(?P<body>[\s\S]*)$", re.MULTILINE
 )
+
+LOG_TOML = "+++\n{meta}+++\n{body}"
 LOG_TOML_RE = re.compile(
     r"^\+\+\+\n(?P<meta>[\s\S]*)\+\+\+\n(?P<body>[\s\S]*)$", re.MULTILINE
 )
@@ -49,10 +34,20 @@ class Thoth:
 
     def log(self, log: Log) -> Log:
         with NamedTemporaryFile("w+", encoding="utf8", suffix=".md") as fp:
+            log_dict = json.loads(log.json(
+                include={"title", "channel", "tags", "custom_data"}
+            ))
+
             if settings.front_matter_format == "toml":
-                fp.write(LOG_TOML.format(log=log))
+                fp.write(LOG_TOML.format(
+                    meta=toml.dumps(log_dict),
+                    body=log.body,
+                ))
             else:
-                fp.write(LOG_YAML.format(log=log))
+                fp.write(LOG_YAML.format(
+                    meta=yaml.safe_dump(log_dict),
+                    body=log.body,
+                ))
 
             fp.flush()
             call([settings.editor, fp.name])
@@ -70,10 +65,10 @@ class Thoth:
                 meta = {}
                 body = ""
 
-            log.channel = meta["channel"]
-            log.tags = meta["tags"]
-            log.title = meta["title"]
-            log.time_spent = meta["time_spent"]
+            log.title = meta.get("title", log.title)
+            log.channel = meta.get("channel", log.channel)
+            log.tags = meta.get("tags", log.tags)
+            log.custom_data = meta.get("custom_data", log.custom_data)
             log.body = body.strip()
 
         if log.channel not in settings.channels:

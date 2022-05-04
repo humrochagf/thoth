@@ -157,4 +157,6 @@ def config(key: str, value: Optional[str] = None) -> None:
                 f"Invalid channel. Pick one from {settings.channels}"
             )
         else:
+            CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+
             toml_loader.write(CONFIG_FILE, {key: value}, merge=True)

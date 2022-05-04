@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -20,4 +20,7 @@ class Log(BaseModel):
     start: datetime = datetime.now(timezone.utc)
     end: Optional[datetime] = None
 
-    time_spent: timedelta = timedelta()
+    custom_data: dict = {}
+
+    class Config:
+        validate_assignment = True
