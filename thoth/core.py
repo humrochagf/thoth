@@ -1,6 +1,7 @@
 import json
 import re
 from subprocess import call
+from datetime import datetime, timezone
 from tempfile import NamedTemporaryFile
 from typing import Iterator, Optional
 
@@ -113,3 +114,8 @@ class Thoth:
 
     def delete_log(self, log: Log) -> None:
         self.db.remove(where("id") == str(log.id))
+
+    def close_log(self, log: Log) -> None:
+        log.end = datetime.now(timezone.utc)
+
+        self.db.upsert(json.loads(log.json()), where("id") == str(log.id))

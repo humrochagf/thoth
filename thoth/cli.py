@@ -141,6 +141,17 @@ def delete(id: str) -> None:
 
 
 @app.command()
+def close(id: str) -> None:
+    """
+    Mark as done a specific log.
+    """
+    if log := thoth.get_log(id):
+        thoth.close_log(log)
+
+        echo_log(log)
+
+
+@app.command()
 def config(key: str, value: Optional[str] = None) -> None:
     """
     Manage thoth configuration options.
