@@ -6,8 +6,8 @@ authors = ["Humberto Rocha <humrochagf@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-thoth = "thoth.cli:app"
-th = "thoth.cli:app"
+thoth = "thoth:__main__"
+th = "thoth:__main__"
 
 [tool.poetry.dependencies]
 python = "^3.8"
