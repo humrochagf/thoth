@@ -93,13 +93,24 @@ class Thoth:
         query_string: Optional[str] = None,
         channel: Optional[str] = None,
     ) -> Iterator[Log]:
-        # TODO: text search
-        if channel:
-            query = self.db.search(where("channel") == channel)
-        else:
-            query = self.db.all()
+        query = None
 
-        for item in query:
+        if query_string:
+            contains = lambda v: query_string.lower() in v.lower()
+
+            query = where("title").test(contains) | where("body").test(contains)
+
+        if channel:
+            channel_query = where("channel") == channel
+
+            query = query & channel_query if query else channel_query
+
+        if query:
+            results = self.db.search(query)
+        else:
+            results = self.db.all()
+
+        for item in results:
             yield Log(**item)
 
     def get_log(self, id: str) -> Optional[Log]:

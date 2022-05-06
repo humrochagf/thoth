@@ -39,6 +39,7 @@ profile = "black"
 disallow_incomplete_defs = true
 check_untyped_defs = true
 warn_unused_ignores = true
+plugins = "tinydb.mypy_plugin"
 
 [[tool.mypy.overrides]]
 module = [
